@@ -10,8 +10,8 @@ const montserrat = Montserrat({
 });
 
 export const metadata: Metadata = {
-  title: "Audalithic - Multilingual Radio",
-  description: "A beautiful multilingual radio experience",
+  title: "Audalithic - Multilingual Real-Time AI Radio.",
+  description: "A multilingual real-time AI radio experience.",
 };
 
 export default function RootLayout({

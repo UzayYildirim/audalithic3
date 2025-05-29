@@ -1,0 +1,36 @@
+# CORS Configuration for Audalithic Audio Server
+# Allow cross-origin requests from your Cloudflare Pages domain
+
+<IfModule mod_headers.c>
+    # Allow requests from your Cloudflare Pages domain
+    Header always set Access-Control-Allow-Origin "*"
+    
+    # Allow specific methods
+    Header always set Access-Control-Allow-Methods "GET, HEAD, OPTIONS"
+    
+    # Allow specific headers
+    Header always set Access-Control-Allow-Headers "Origin, X-Requested-With, Content-Type, Accept, Authorization, Cache-Control"
+    
+    # Allow credentials if needed
+    Header always set Access-Control-Allow-Credentials "true"
+    
+    # Cache preflight requests for 1 hour
+    Header always set Access-Control-Max-Age "3600"
+</IfModule>
+
+# Handle preflight OPTIONS requests
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteCond %{REQUEST_METHOD} OPTIONS
+    RewriteRule ^(.*)$ $1 [R=200,L]
+</IfModule>
+
+# Optional: Set cache headers for audio files
+<FilesMatch "\.(mp3|wav|ogg|m4a)$">
+    Header set Cache-Control "public, max-age=31536000"
+</FilesMatch>
+
+# Optional: Set cache headers for manifest.json
+<FilesMatch "manifest\.json$">
+    Header set Cache-Control "public, max-age=300"
+</FilesMatch> 

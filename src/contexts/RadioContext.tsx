@@ -43,15 +43,31 @@ export function RadioProvider({ children }: RadioProviderProps) {
   const [songs, setSongs] = useState<Song[]>([]);
   const [availableSongs, setAvailableSongs] = useState<Song[]>([]);
   const [playedSongs, setPlayedSongs] = useState<string[]>([]);
+  const [previousSongs, setPreviousSongs] = useState<Song[]>([]);
   const [currentSong, setCurrentSong] = useState<Song | null>(null);
+  const [sound, setSound] = useState<Howl | null>(null);
+  const [nextSound, setNextSound] = useState<Howl | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [volume, setVolume] = useState(0.7);
   const [loading, setLoading] = useState(true);
-  const [sound, setSound] = useState<Howl | null>(null);
-  const [nextSound, setNextSound] = useState<Howl | null>(null);
-  const [previousSongs, setPreviousSongs] = useState<Song[]>([]);
   const [isButtonDisabled, setIsButtonDisabled] = useState(false);
   const buttonTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Show offline message when user first visits
+  useEffect(() => {
+    // Check if this is the first visit by checking localStorage
+    const hasVisited = localStorage.getItem('audalithic-visited');
+    if (!hasVisited) {
+      // Show the offline message after a brief delay for better UX
+      setTimeout(() => {
+        toast('🔧 Generation server is currently offline, falling back to previously generated tracks.', {
+          duration: 6000,
+          icon: '📡',
+        });
+      }, 1500);
+      localStorage.setItem('audalithic-visited', 'true');
+    }
+  }, []);
 
   // Load saved preferences from localStorage
   useEffect(() => {
@@ -175,11 +191,6 @@ export function RadioProvider({ children }: RadioProviderProps) {
         
         setLoading(false);
         console.log(`✅ Loaded ${data.songs.length} songs for ${selectedLanguages.join(', ')}`);
-        
-        // Show success message for first load
-        if (playedSongs.length === 0) {
-          toast.success(`🎶 Found ${data.songs.length} songs! Ready to play.`);
-        }
       } catch (error) {
         console.error('Error fetching songs:', error);
         setLoading(false);
@@ -319,7 +330,6 @@ export function RadioProvider({ children }: RadioProviderProps) {
     // Check if we've played all songs and need to reset
     if (playedSongs.length >= songs.length - 1) {
       console.log('All songs have been played, resetting playlist');
-      toast.success('🔄 All songs played! Starting fresh playlist.');
       // Keep only current song in played songs list
       setPlayedSongs(currentSong ? [currentSong.id] : []);
       // Reset available songs to all songs except current
@@ -622,7 +632,6 @@ export function RadioProvider({ children }: RadioProviderProps) {
     setAvailableSongs(newAvailableSongs);
     
     console.log('🔄 Playlist has been reset. All songs are now available.');
-    toast.success(`🔄 Playlist reset! ${newAvailableSongs.length} songs are now available.`);
     
     // If we don't have a next song preloaded, preload one
     if (!nextSound) {
