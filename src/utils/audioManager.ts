@@ -22,9 +22,16 @@ const getAudioBaseUrl = (): string => {
   // For server-side rendering, AUDIO_BASE_URL can be used as fallback
   const baseUrl = process.env.NEXT_PUBLIC_AUDIO_BASE_URL || process.env.AUDIO_BASE_URL;
   if (!baseUrl) {
-    // Provide a helpful error message for development
-    console.error('⚠️ NEXT_PUBLIC_AUDIO_BASE_URL environment variable is not set. Please check your .env.local file.');
-    throw new Error('Music server URL is not configured. Please set NEXT_PUBLIC_AUDIO_BASE_URL in your environment variables.');
+    // During build time, this might not be available, so provide a helpful error
+    const isRuntime = typeof window !== 'undefined' || process.env.NODE_ENV === 'production';
+    if (isRuntime) {
+      console.error('⚠️ NEXT_PUBLIC_AUDIO_BASE_URL environment variable is not set. Please check your .env.local file.');
+      throw new Error('Music server URL is not configured. Please set NEXT_PUBLIC_AUDIO_BASE_URL in your environment variables.');
+    } else {
+      // During build time, throw a different error that won't fail the build
+      console.warn('⚠️ NEXT_PUBLIC_AUDIO_BASE_URL not set during build time - this is expected');
+      throw new Error('NEXT_PUBLIC_AUDIO_BASE_URL not configured for build');
+    }
   }
   return baseUrl.endsWith('/') ? baseUrl.slice(0, -1) : baseUrl;
 };

@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSongsByLanguages } from '@/utils/audioManager';
 
+// Configure this route to use Edge Runtime for Cloudflare Pages compatibility
+export const runtime = 'edge';
+
 export async function POST(request: NextRequest) {
   try {
     const { languages } = await request.json();
