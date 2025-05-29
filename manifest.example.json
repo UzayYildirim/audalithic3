@@ -1,0 +1,30 @@
+{
+  "languages": {
+    "English": [
+      "Running for Stars",
+      "Almost Summer Now",
+      "Brand New Day",
+      "Breaking Free"
+    ],
+    "Spanish": [
+      "Canción de Verano",
+      "Baila Conmigo",
+      "Sueños Dorados"
+    ],
+    "French": [
+      "Chanson d'Été",
+      "Danse avec Moi",
+      "Rêves Dorés"
+    ],
+    "Turkish": [
+      "Yaz Şarkısı",
+      "Benimle Dans Et",
+      "Altın Rüyalar"
+    ],
+    "Instrumental": [
+      "Piano Melody 1",
+      "Guitar Solo 2",
+      "Orchestra Suite 3"
+    ]
+  }
+} 
