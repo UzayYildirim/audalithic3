@@ -114,20 +114,20 @@ export default function RadioPlayer() {
                 <path strokeLinecap="round" strokeLinejoin="round" d="M9 9l10.5-3m0 6.553v3.75a2.25 2.25 0 01-1.632 2.163l-1.32.377a1.803 1.803 0 11-.99-3.467l2.31-.66a2.25 2.25 0 001.632-2.163zm0 0V2.25L9 5.25v10.303m0 0v3.75a2.25 2.25 0 01-1.632 2.163l-1.32.377a1.803 1.803 0 01-.99-3.467l2.31-.66A2.25 2.25 0 009 15.553z" />
               </svg>
               <div className="flex-1">
-                <div className="text-sm font-semibold text-white truncate">
-                  {currentSong.title}
-                </div>
-                <div className="flex items-center justify-between gap-2">
-                  <div className="text-xs font-medium truncate flex items-center gap-1" style={{ color: 'var(--accent-pink)' }}>
-                    <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 21l5.25-11.25L21 21m-9-3h7.5M3 5.621a48.474 48.474 0 016-.371m0 0c1.12 0 2.233.038 3.334.114M9 5.25V3m3.334 2.364C11.176 10.658 7.69 15.08 3 17.502m9.334-12.138c.896.061 1.785.147 2.666.257m-4.589 8.495a18.023 18.023 0 01-3.827-5.802" />
-                    </svg>
-                    {currentSong.language}
+                <div className="flex items-center gap-3 mb-1">
+                  <div className="text-sm font-semibold text-white truncate">
+                    {currentSong.title}
                   </div>
-                  {/* Audio Time Display */}
-                  <div className="text-xs text-gray-400 font-mono">
+                  {/* Audio Time Display - moved to prominent left position */}
+                  <div className="text-xs text-gray-300 font-mono bg-gray-800/50 px-2 py-0.5 rounded-full border border-gray-700/50">
                     {formatTime(currentTime)}/{formatTime(remainingTime)}
                   </div>
+                </div>
+                <div className="text-xs font-medium truncate flex items-center gap-1" style={{ color: 'var(--accent-pink)' }}>
+                  <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 21l5.25-11.25L21 21m-9-3h7.5M3 5.621a48.474 48.474 0 016-.371m0 0c1.12 0 2.233.038 3.334.114M9 5.25V3m3.334 2.364C11.176 10.658 7.69 15.08 3 17.502m9.334-12.138c.896.061 1.785.147 2.666.257m-4.589 8.495a18.023 18.023 0 01-3.827-5.802" />
+                  </svg>
+                  {currentSong.language}
                 </div>
               </div>
             </div>

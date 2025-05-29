@@ -133,16 +133,19 @@ export function RadioProvider({ children }: RadioProviderProps) {
     }
   }, [isPlaying, sound, currentSong]);
 
-  // Reset time when current song changes
+  // Reset time when current song changes (but not during restoration)
   useEffect(() => {
     if (currentSong) {
-      setCurrentTime(0);
+      // Don't reset time if we're restoring audio state
+      if (!shouldRestoreAudio) {
+        setCurrentTime(0);
+      }
       // Duration will be set when the sound loads
     } else {
       setCurrentTime(0);
       setDuration(0);
     }
-  }, [currentSong]);
+  }, [currentSong, shouldRestoreAudio]);
 
   // Load saved preferences from localStorage
   useEffect(() => {
@@ -792,14 +795,19 @@ export function RadioProvider({ children }: RadioProviderProps) {
               const soundDuration = restoredSound?.duration();
               if (typeof soundDuration === 'number' && soundDuration > 0) {
                 setDuration(soundDuration);
+                console.log(`🔄 Duration set: ${soundDuration.toFixed(2)}s`);
               }
               
               // Restore position if available
               if (savedPosition && parseFloat(savedPosition) > 0) {
                 const position = parseFloat(savedPosition);
-                restoredSound.seek(position);
-                setCurrentTime(position);
-                console.log(`🔄 Restored position: ${position.toFixed(2)}s`);
+                // Ensure position doesn't exceed duration
+                const validPosition = Math.min(position, soundDuration || position);
+                restoredSound.seek(validPosition);
+                setCurrentTime(validPosition);
+                console.log(`🔄 Restored position: ${validPosition.toFixed(2)}s`);
+              } else {
+                setCurrentTime(0);
               }
 
               // Restore playing state
@@ -818,11 +826,14 @@ export function RadioProvider({ children }: RadioProviderProps) {
                 });
               }
 
-              // Mark restoration as complete
-              setShouldRestoreAudio(false);
+              // Mark restoration as complete after a small delay to ensure timing is correct
+              setTimeout(() => {
+                setShouldRestoreAudio(false);
+              }, 100);
             },
             onplay: () => {
               setIsPlaying(true);
+              console.log('🔄 Restoration - audio playing');
               // Update current time when playing
               const current = restoredSound?.seek();
               if (typeof current === 'number') {
@@ -831,6 +842,7 @@ export function RadioProvider({ children }: RadioProviderProps) {
             },
             onpause: () => {
               setIsPlaying(false);
+              console.log('🔄 Restoration - audio paused');
               // Update current time when paused
               const current = restoredSound?.seek();
               if (typeof current === 'number') {
