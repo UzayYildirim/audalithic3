@@ -168,23 +168,29 @@ export function RadioProvider({ children }: RadioProviderProps) {
         setPlayedSongs(JSON.parse(savedPlayedSongs));
       }
 
-      // Check if we should restore audio state
-      if (savedCurrentSong && wasPlaying) {
+      // Check if we should restore audio state (whether it was playing or paused)
+      if (savedCurrentSong) {
         try {
           const song = JSON.parse(savedCurrentSong);
-          const wasPlayingBool = wasPlaying === 'true';
           
           // Check if the save is recent (within last 24 hours)
           const savedTimestamp = localStorage.getItem('audioPositionTimestamp');
           const now = Date.now();
           const dayInMs = 24 * 60 * 60 * 1000;
           
-          if (savedTimestamp && (now - parseInt(savedTimestamp)) < dayInMs) {
+          if (!savedTimestamp || (now - parseInt(savedTimestamp)) < dayInMs) {
             setCurrentSong(song);
             setShouldRestoreAudio(true);
-            console.log('🔄 Preparing to restore audio state:', song.title);
+            console.log('🔄 Preparing to restore audio state:', song.title, 'wasPlaying:', wasPlaying);
+            
+            // Ensure the saved song's language is selected so it can be found
+            if (song.language && !selectedLanguages.includes(song.language)) {
+              console.log('🔄 Adding saved song language to selection:', song.language);
+              setSelectedLanguages(prev => [...prev, song.language]);
+            }
           } else {
             // Clear old saved state
+            console.log('🗑️ Clearing old saved state (older than 24 hours)');
             localStorage.removeItem('currentSong');
             localStorage.removeItem('wasPlaying');
             localStorage.removeItem('audioPosition');
@@ -557,11 +563,18 @@ export function RadioProvider({ children }: RadioProviderProps) {
           },
           onload: () => {
             console.log('✅ Song loaded successfully:', songToPlay?.title);
-            // Set duration when sound loads
-            const soundDuration = soundToUse?.duration();
-            if (typeof soundDuration === 'number' && soundDuration > 0) {
-              setDuration(soundDuration);
-            }
+            // Set duration with retry mechanism
+            const setDurationWithRetry = (attempt = 0) => {
+              const soundDuration = soundToUse?.duration();
+              if (typeof soundDuration === 'number' && soundDuration > 0) {
+                setDuration(soundDuration);
+                console.log(`🎵 Duration set: ${soundDuration.toFixed(2)}s`);
+              } else if (attempt < 3) {
+                // Retry up to 3 times for regular playback
+                setTimeout(() => setDurationWithRetry(attempt + 1), 200 * (attempt + 1));
+              }
+            };
+            setDurationWithRetry();
           },
           onplay: () => {
             // Update current time when playing starts
@@ -791,33 +804,53 @@ export function RadioProvider({ children }: RadioProviderProps) {
             onload: () => {
               console.log('✅ Restored song loaded successfully:', currentSong.title);
               
-              // Set duration when sound loads
-              const soundDuration = restoredSound?.duration();
-              if (typeof soundDuration === 'number' && soundDuration > 0) {
-                setDuration(soundDuration);
-                console.log(`🔄 Duration set: ${soundDuration.toFixed(2)}s`);
-              }
+              // Set duration with retry mechanism
+              const setDurationWithRetry = (attempt = 0) => {
+                const soundDuration = restoredSound?.duration();
+                console.log(`🔄 Duration attempt ${attempt + 1}:`, soundDuration);
+                
+                if (typeof soundDuration === 'number' && soundDuration > 0) {
+                  setDuration(soundDuration);
+                  console.log(`🔄 Duration set: ${soundDuration.toFixed(2)}s`);
+                } else if (attempt < 5) {
+                  // Retry up to 5 times with increasing delay
+                  setTimeout(() => setDurationWithRetry(attempt + 1), 200 * (attempt + 1));
+                } else {
+                  console.warn('🔄 Could not get duration after 5 attempts');
+                }
+              };
+              
+              // Start duration setting process
+              setDurationWithRetry();
               
               // Restore position if available
               if (savedPosition && parseFloat(savedPosition) > 0) {
                 const position = parseFloat(savedPosition);
-                // Ensure position doesn't exceed duration
-                const validPosition = Math.min(position, soundDuration || position);
-                restoredSound.seek(validPosition);
-                setCurrentTime(validPosition);
-                console.log(`🔄 Restored position: ${validPosition.toFixed(2)}s`);
+                // Get current duration for validation
+                const currentDuration = restoredSound?.duration() || 0;
+                const validPosition = currentDuration > 0 ? Math.min(position, currentDuration) : position;
+                
+                // Delay seeking to ensure audio is ready
+                setTimeout(() => {
+                  restoredSound.seek(validPosition);
+                  setCurrentTime(validPosition);
+                  console.log(`🔄 Restored position: ${validPosition.toFixed(2)}s`);
+                }, 300);
               } else {
                 setCurrentTime(0);
               }
 
               // Restore playing state
               if (wasPlaying) {
-                restoredSound.play();
-                setIsPlaying(true);
-                console.log('▶️ Resumed playback from saved state');
-                toast.success(`🔄 Resumed "${currentSong.title}" from where you left off`, {
-                  duration: 3000,
-                });
+                // Delay play to ensure everything is set up
+                setTimeout(() => {
+                  restoredSound.play();
+                  setIsPlaying(true);
+                  console.log('▶️ Resumed playback from saved state');
+                  toast.success(`🔄 Resumed "${currentSong.title}" from where you left off`, {
+                    duration: 3000,
+                  });
+                }, 400);
               } else {
                 setIsPlaying(false);
                 console.log('⏸️ Restored in paused state');
@@ -830,7 +863,7 @@ export function RadioProvider({ children }: RadioProviderProps) {
               setTimeout(() => {
                 setShouldRestoreAudio(false);
                 console.log('🔄 Audio restoration completed');
-              }, 100);
+              }, 600);
             },
             onplay: () => {
               setIsPlaying(true);
@@ -1057,11 +1090,18 @@ export function RadioProvider({ children }: RadioProviderProps) {
           },
           onload: () => {
             console.log('✅ Previous song loaded successfully:', lastSong.title);
-            // Set duration when sound loads
-            const soundDuration = newSound?.duration();
-            if (typeof soundDuration === 'number' && soundDuration > 0) {
-              setDuration(soundDuration);
-            }
+            // Set duration with retry mechanism
+            const setDurationWithRetry = (attempt = 0) => {
+              const soundDuration = newSound?.duration();
+              if (typeof soundDuration === 'number' && soundDuration > 0) {
+                setDuration(soundDuration);
+                console.log(`🎵 Duration set: ${soundDuration.toFixed(2)}s`);
+              } else if (attempt < 3) {
+                // Retry up to 3 times for regular playback
+                setTimeout(() => setDurationWithRetry(attempt + 1), 200 * (attempt + 1));
+              }
+            };
+            setDurationWithRetry();
           },
           onpause: () => {
             setIsPlaying(false);
@@ -1144,11 +1184,18 @@ export function RadioProvider({ children }: RadioProviderProps) {
         },
         onload: () => {
           console.log('✅ Song loaded successfully:', songToPlay.title);
-          // Set duration when sound loads
-          const soundDuration = newSound?.duration();
-          if (typeof soundDuration === 'number' && soundDuration > 0) {
-            setDuration(soundDuration);
-          }
+          // Set duration with retry mechanism
+          const setDurationWithRetry = (attempt = 0) => {
+            const soundDuration = newSound?.duration();
+            if (typeof soundDuration === 'number' && soundDuration > 0) {
+              setDuration(soundDuration);
+              console.log(`🎵 Duration set: ${soundDuration.toFixed(2)}s`);
+            } else if (attempt < 3) {
+              // Retry up to 3 times for regular playback
+              setTimeout(() => setDurationWithRetry(attempt + 1), 200 * (attempt + 1));
+            }
+          };
+          setDurationWithRetry();
         },
         onpause: () => {
           setIsPlaying(false);
