@@ -15,6 +15,8 @@ interface RadioContextType {
   playedSongs: string[];
   hasPreviousSongs: boolean;
   isButtonDisabled: boolean;
+  currentTime: number;
+  duration: number;
   toggleLanguage: (languageId: string) => void;
   togglePlay: () => void;
   setVolume: (volume: number) => void;
@@ -80,6 +82,9 @@ export function RadioProvider({ children }: RadioProviderProps) {
   const [shouldRestoreAudio, setShouldRestoreAudio] = useState(false);
   const buttonTimerRef = useRef<NodeJS.Timeout | null>(null);
   const positionSaveInterval = useRef<NodeJS.Timeout | null>(null);
+  const timeUpdateInterval = useRef<NodeJS.Timeout | null>(null);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(0);
 
   // Show offline message when user first visits
   useEffect(() => {
@@ -96,6 +101,48 @@ export function RadioProvider({ children }: RadioProviderProps) {
       localStorage.setItem('audalithic-visited', 'true');
     }
   }, []);
+
+  // Time tracking effect - update current time every second when playing
+  useEffect(() => {
+    if (isPlaying && sound && currentSong) {
+      // Update time every second
+      timeUpdateInterval.current = setInterval(() => {
+        if (sound && sound.playing()) {
+          const current = sound.seek();
+          if (typeof current === 'number') {
+            setCurrentTime(current);
+          }
+        }
+      }, 1000);
+
+      return () => {
+        if (timeUpdateInterval.current) {
+          clearInterval(timeUpdateInterval.current);
+        }
+      };
+    } else {
+      if (timeUpdateInterval.current) {
+        clearInterval(timeUpdateInterval.current);
+      }
+      
+      // Reset time when not playing
+      if (!isPlaying && !currentSong) {
+        setCurrentTime(0);
+        setDuration(0);
+      }
+    }
+  }, [isPlaying, sound, currentSong]);
+
+  // Reset time when current song changes
+  useEffect(() => {
+    if (currentSong) {
+      setCurrentTime(0);
+      // Duration will be set when the sound loads
+    } else {
+      setCurrentTime(0);
+      setDuration(0);
+    }
+  }, [currentSong]);
 
   // Load saved preferences from localStorage
   useEffect(() => {
@@ -507,6 +554,25 @@ export function RadioProvider({ children }: RadioProviderProps) {
           },
           onload: () => {
             console.log('✅ Song loaded successfully:', songToPlay?.title);
+            // Set duration when sound loads
+            const soundDuration = soundToUse?.duration();
+            if (typeof soundDuration === 'number' && soundDuration > 0) {
+              setDuration(soundDuration);
+            }
+          },
+          onplay: () => {
+            // Update current time when playing starts
+            const current = soundToUse?.seek();
+            if (typeof current === 'number') {
+              setCurrentTime(current);
+            }
+          },
+          onpause: () => {
+            // Update current time when paused
+            const current = soundToUse?.seek();
+            if (typeof current === 'number') {
+              setCurrentTime(current);
+            }
           }
         });
       }
@@ -516,6 +582,18 @@ export function RadioProvider({ children }: RadioProviderProps) {
         setIsPlaying(true);
         setCurrentSong(songToPlay);
         console.log('▶️ Now playing:', songToPlay?.title);
+        
+        // Set duration if not already set
+        const soundDuration = soundToUse?.duration();
+        if (typeof soundDuration === 'number' && soundDuration > 0) {
+          setDuration(soundDuration);
+        }
+        
+        // Update current time
+        const current = soundToUse?.seek();
+        if (typeof current === 'number') {
+          setCurrentTime(current);
+        }
       });
 
       // Update the current song in previous songs list
@@ -710,10 +788,17 @@ export function RadioProvider({ children }: RadioProviderProps) {
             onload: () => {
               console.log('✅ Restored song loaded successfully:', currentSong.title);
               
+              // Set duration when sound loads
+              const soundDuration = restoredSound?.duration();
+              if (typeof soundDuration === 'number' && soundDuration > 0) {
+                setDuration(soundDuration);
+              }
+              
               // Restore position if available
               if (savedPosition && parseFloat(savedPosition) > 0) {
                 const position = parseFloat(savedPosition);
                 restoredSound.seek(position);
+                setCurrentTime(position);
                 console.log(`🔄 Restored position: ${position.toFixed(2)}s`);
               }
 
@@ -738,9 +823,19 @@ export function RadioProvider({ children }: RadioProviderProps) {
             },
             onplay: () => {
               setIsPlaying(true);
+              // Update current time when playing
+              const current = restoredSound?.seek();
+              if (typeof current === 'number') {
+                setCurrentTime(current);
+              }
             },
             onpause: () => {
               setIsPlaying(false);
+              // Update current time when paused
+              const current = restoredSound?.seek();
+              if (typeof current === 'number') {
+                setCurrentTime(current);
+              }
             }
           });
 
@@ -808,9 +903,16 @@ export function RadioProvider({ children }: RadioProviderProps) {
           console.log('⏸️ Pausing playback');
           sound.pause();
           setIsPlaying(false);  // Update isPlaying state when pausing
+          
+          // Update current time when pausing
+          const current = sound.seek();
+          if (typeof current === 'number') {
+            setCurrentTime(current);
+          }
         } else {
           console.log('▶️ Resuming playback');
           sound.play();
+          // isPlaying will be updated by the onplay event handler
         }
       }
     });
@@ -926,6 +1028,19 @@ export function RadioProvider({ children }: RadioProviderProps) {
           },
           onload: () => {
             console.log('✅ Previous song loaded successfully:', lastSong.title);
+            // Set duration when sound loads
+            const soundDuration = newSound?.duration();
+            if (typeof soundDuration === 'number' && soundDuration > 0) {
+              setDuration(soundDuration);
+            }
+          },
+          onpause: () => {
+            setIsPlaying(false);
+            // Update current time when paused
+            const current = newSound?.seek();
+            if (typeof current === 'number') {
+              setCurrentTime(current);
+            }
           }
         });
 
@@ -934,6 +1049,18 @@ export function RadioProvider({ children }: RadioProviderProps) {
           setIsPlaying(true);
           setCurrentSong(lastSong);
           console.log('▶️ Now playing previous song:', lastSong.title);
+          
+          // Set duration if not already set
+          const soundDuration = newSound?.duration();
+          if (typeof soundDuration === 'number' && soundDuration > 0) {
+            setDuration(soundDuration);
+          }
+          
+          // Update current time
+          const current = newSound?.seek();
+          if (typeof current === 'number') {
+            setCurrentTime(current);
+          }
         });
 
         // Set and play the sound
@@ -986,12 +1113,37 @@ export function RadioProvider({ children }: RadioProviderProps) {
             playNextSong();
           }, 500);
         },
+        onload: () => {
+          console.log('✅ Song loaded successfully:', songToPlay.title);
+          // Set duration when sound loads
+          const soundDuration = newSound?.duration();
+          if (typeof soundDuration === 'number' && soundDuration > 0) {
+            setDuration(soundDuration);
+          }
+        },
         onpause: () => {
           setIsPlaying(false);
+          // Update current time when paused
+          const current = newSound?.seek();
+          if (typeof current === 'number') {
+            setCurrentTime(current);
+          }
         },
         onplay: () => {
           setIsPlaying(true);
           setCurrentSong(songToPlay); // Update current song when playback actually starts
+          
+          // Set duration if not already set
+          const soundDuration = newSound?.duration();
+          if (typeof soundDuration === 'number' && soundDuration > 0) {
+            setDuration(soundDuration);
+          }
+          
+          // Update current time
+          const current = newSound?.seek();
+          if (typeof current === 'number') {
+            setCurrentTime(current);
+          }
         }
       });
       
@@ -1048,6 +1200,8 @@ export function RadioProvider({ children }: RadioProviderProps) {
     playedSongs,
     hasPreviousSongs: previousSongs.length > 0,
     isButtonDisabled,
+    currentTime,
+    duration,
     toggleLanguage,
     togglePlay,
     setVolume,

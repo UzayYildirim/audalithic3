@@ -3,6 +3,16 @@
 import React from 'react';
 import { useRadio } from '@/contexts/RadioContext';
 
+// Helper function to format time in MM:SS format
+const formatTime = (seconds: number): string => {
+  if (!seconds || isNaN(seconds) || seconds < 0) return '0:00';
+  
+  const minutes = Math.floor(seconds / 60);
+  const remainingSeconds = Math.floor(seconds % 60);
+  
+  return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
+};
+
 export default function RadioPlayer() {
   const { 
     isPlaying, 
@@ -14,8 +24,13 @@ export default function RadioPlayer() {
     currentSong, 
     selectedLanguages,
     hasPreviousSongs,
-    isButtonDisabled
+    isButtonDisabled,
+    currentTime,
+    duration
   } = useRadio();
+
+  // Calculate remaining time
+  const remainingTime = duration > 0 ? duration - currentTime : 0;
 
   // If no languages are selected, show a message
   if (selectedLanguages.length === 0) {
@@ -98,15 +113,21 @@ export default function RadioPlayer() {
               <svg className="w-4 h-4 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M9 9l10.5-3m0 6.553v3.75a2.25 2.25 0 01-1.632 2.163l-1.32.377a1.803 1.803 0 11-.99-3.467l2.31-.66a2.25 2.25 0 001.632-2.163zm0 0V2.25L9 5.25v10.303m0 0v3.75a2.25 2.25 0 01-1.632 2.163l-1.32.377a1.803 1.803 0 01-.99-3.467l2.31-.66A2.25 2.25 0 009 15.553z" />
               </svg>
-              <div>
+              <div className="flex-1">
                 <div className="text-sm font-semibold text-white truncate">
                   {currentSong.title}
                 </div>
-                <div className="text-xs font-medium truncate flex items-center gap-1" style={{ color: 'var(--accent-pink)' }}>
-                  <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 21l5.25-11.25L21 21m-9-3h7.5M3 5.621a48.474 48.474 0 016-.371m0 0c1.12 0 2.233.038 3.334.114M9 5.25V3m3.334 2.364C11.176 10.658 7.69 15.08 3 17.502m9.334-12.138c.896.061 1.785.147 2.666.257m-4.589 8.495a18.023 18.023 0 01-3.827-5.802" />
-                  </svg>
-                  {currentSong.language}
+                <div className="flex items-center justify-between gap-2">
+                  <div className="text-xs font-medium truncate flex items-center gap-1" style={{ color: 'var(--accent-pink)' }}>
+                    <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 21l5.25-11.25L21 21m-9-3h7.5M3 5.621a48.474 48.474 0 016-.371m0 0c1.12 0 2.233.038 3.334.114M9 5.25V3m3.334 2.364C11.176 10.658 7.69 15.08 3 17.502m9.334-12.138c.896.061 1.785.147 2.666.257m-4.589 8.495a18.023 18.023 0 01-3.827-5.802" />
+                    </svg>
+                    {currentSong.language}
+                  </div>
+                  {/* Audio Time Display */}
+                  <div className="text-xs text-gray-400 font-mono">
+                    {formatTime(currentTime)}/{formatTime(remainingTime)}
+                  </div>
                 </div>
               </div>
             </div>
