@@ -7,8 +7,8 @@
 In your Cloudflare Pages dashboard, set the following:
 
 **Build Configuration:**
-- Framework preset: `Next.js (Static Export)` or `Next.js`
-- Build command: `npm run build`
+- Framework preset: `Next.js` (not Static Export)
+- Build command: `npm run pages:build`
 - Build output directory: `.vercel/output/static`
 - Root directory: `/` (leave empty)
 
@@ -65,7 +65,7 @@ Set in the environment variables section:
 
 ### Build Fails
 - Make sure you have `@cloudflare/next-on-pages` installed
-- Check that your build command is `npm run build` not `pnpm run build` if using the dashboard
+- Check that your build command is `npm run pages:build` not `pnpm run build` if using the dashboard
 
 ### App Doesn't Load Music
 - Verify the `NEXT_PUBLIC_AUDIO_BASE_URL` environment variable is set in production
