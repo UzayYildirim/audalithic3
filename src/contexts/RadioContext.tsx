@@ -410,6 +410,8 @@ export function RadioProvider({ children }: RadioProviderProps) {
       soundToUse.on('play', () => {
         setIsPlaying(true);
         setCurrentSong(songToPlay);
+        setCurrentTime(0); // Reset current time when new song starts
+        setDuration(0); // Reset duration initially, will be set by the tracking effect
         console.log('▶️ Now playing:', songToPlay?.title);
       });
 
@@ -481,6 +483,8 @@ export function RadioProvider({ children }: RadioProviderProps) {
         onplay: () => {
           setIsPlaying(true);
           setCurrentSong(songToPlay); // Update current song when playback actually starts
+          setCurrentTime(0); // Reset current time when new song starts
+          setDuration(0); // Reset duration initially, will be set by the tracking effect
         }
       });
       

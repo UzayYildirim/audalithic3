@@ -45,11 +45,11 @@ export default function RadioPlayer() {
     <div className="relative flex flex-col gap-4">
       <div className="flex items-center gap-4 h-16 px-2">
         {/* Duration Display */}
-        <div className="flex items-center text-xs text-gray-400 font-mono w-16 flex-shrink-0">
-          {currentSong ? (
-            <span>{formatTime(currentTime)} / {formatTime(duration)}</span>
+        <div className="flex items-center text-xs text-gray-400 font-mono min-w-[70px] flex-shrink-0">
+          {currentSong && duration > 0 ? (
+            <span className="text-gray-300">{formatTime(currentTime)}<span className="text-gray-500"> / {formatTime(duration)}</span></span>
           ) : (
-            <span>--:-- / --:--</span>
+            <span className="text-gray-500">--:--</span>
           )}
         </div>
 
