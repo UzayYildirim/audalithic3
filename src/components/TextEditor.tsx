@@ -141,7 +141,7 @@ export default function TextEditor() {
         };
       }
       return element;
-    }));
+    }));  
     
     setDragStart({ x: e.clientX, y: e.clientY });
   };

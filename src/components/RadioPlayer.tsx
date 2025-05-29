@@ -29,7 +29,15 @@ export default function RadioPlayer() {
 
   // Debug effect to log duration values
   React.useEffect(() => {
-    console.log('Duration Debug:', { currentTime, duration, currentSong: currentSong?.title });
+    console.log('Duration Debug:', { 
+      currentTime, 
+      duration, 
+      currentSong: currentSong?.title,
+      isCurrentTimeValid: isFinite(currentTime),
+      isDurationValid: isFinite(duration),
+      formattedCurrentTime: formatTime(currentTime),
+      formattedDuration: formatTime(duration)
+    });
   }, [currentTime, duration, currentSong]);
 
   // If no languages are selected, show a message
@@ -50,16 +58,16 @@ export default function RadioPlayer() {
     <div className="relative flex flex-col gap-4">
       <div className="flex items-center gap-3 h-16 px-2">
         {/* Duration Display */}
-        <div className="flex items-center text-xs font-mono min-w-[80px] flex-shrink-0 bg-gray-800/30 px-2 py-1 rounded border border-gray-700/50">
-          {currentSong ? (
-            <span className="text-white">
-              <span className="text-blue-400">{formatTime(currentTime)}</span>
-              <span className="text-gray-500 mx-1">/</span>
-              <span className="text-gray-300">{formatTime(duration)}</span>
-            </span>
-          ) : (
-            <span className="text-gray-500">--:--</span>
-          )}
+        <div className="flex items-center text-xs font-mono min-w-[120px] flex-shrink-0 bg-yellow-800/50 px-3 py-2 rounded border-2 border-yellow-500">
+          <span className="text-white font-bold">
+            <span className="text-blue-400">{formatTime(currentTime)}</span>
+            <span className="text-gray-300 mx-1">/</span>
+            <span className="text-green-400">{formatTime(duration)}</span>
+            {/* Debug info */}
+            <div className="text-xs text-red-400 mt-1">
+              t={currentTime.toFixed(1)}, d={duration.toFixed(1)}
+            </div>
+          </span>
         </div>
 
         {/* Play Controls */}
