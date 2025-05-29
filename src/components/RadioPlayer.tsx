@@ -3,16 +3,6 @@
 import React from 'react';
 import { useRadio } from '@/contexts/RadioContext';
 
-// Helper function to format time in MM:SS format
-const formatTime = (seconds: number): string => {
-  if (!seconds || isNaN(seconds) || seconds < 0) return '0:00';
-  
-  const minutes = Math.floor(seconds / 60);
-  const remainingSeconds = Math.floor(seconds % 60);
-  
-  return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
-};
-
 export default function RadioPlayer() {
   const { 
     isPlaying, 
@@ -29,8 +19,13 @@ export default function RadioPlayer() {
     duration
   } = useRadio();
 
-  // Calculate remaining time
-  const remainingTime = duration > 0 ? duration - currentTime : 0;
+  // Format time in mm:ss format
+  const formatTime = (seconds: number) => {
+    if (!seconds || !isFinite(seconds)) return '0:00';
+    const mins = Math.floor(seconds / 60);
+    const secs = Math.floor(seconds % 60);
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
 
   // If no languages are selected, show a message
   if (selectedLanguages.length === 0) {
@@ -49,6 +44,15 @@ export default function RadioPlayer() {
   return (
     <div className="relative flex flex-col gap-4">
       <div className="flex items-center gap-4 h-16 px-2">
+        {/* Duration Display */}
+        <div className="flex items-center text-xs text-gray-400 font-mono w-16 flex-shrink-0">
+          {currentSong ? (
+            <span>{formatTime(currentTime)} / {formatTime(duration)}</span>
+          ) : (
+            <span>--:-- / --:--</span>
+          )}
+        </div>
+
         {/* Play Controls */}
         <div className="flex items-center gap-2">
           <button 
@@ -113,15 +117,9 @@ export default function RadioPlayer() {
               <svg className="w-4 h-4 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M9 9l10.5-3m0 6.553v3.75a2.25 2.25 0 01-1.632 2.163l-1.32.377a1.803 1.803 0 11-.99-3.467l2.31-.66a2.25 2.25 0 001.632-2.163zm0 0V2.25L9 5.25v10.303m0 0v3.75a2.25 2.25 0 01-1.632 2.163l-1.32.377a1.803 1.803 0 01-.99-3.467l2.31-.66A2.25 2.25 0 009 15.553z" />
               </svg>
-              <div className="flex-1">
-                <div className="flex items-center gap-3 mb-1">
-                  <div className="text-sm font-semibold text-white truncate">
-                    {currentSong.title}
-                  </div>
-                  {/* Audio Time Display - moved to prominent left position */}
-                  <div className="text-xs text-gray-300 font-mono bg-gray-800/50 px-2 py-0.5 rounded-full border border-gray-700/50">
-                    {formatTime(currentTime)}/{formatTime(remainingTime)}
-                  </div>
+              <div>
+                <div className="text-sm font-semibold text-white truncate">
+                  {currentSong.title}
                 </div>
                 <div className="text-xs font-medium truncate flex items-center gap-1" style={{ color: 'var(--accent-pink)' }}>
                   <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
