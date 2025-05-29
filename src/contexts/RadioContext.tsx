@@ -829,6 +829,7 @@ export function RadioProvider({ children }: RadioProviderProps) {
               // Mark restoration as complete after a small delay to ensure timing is correct
               setTimeout(() => {
                 setShouldRestoreAudio(false);
+                console.log('🔄 Audio restoration completed');
               }, 100);
             },
             onplay: () => {
@@ -902,11 +903,27 @@ export function RadioProvider({ children }: RadioProviderProps) {
   const togglePlay = () => {
     debounceButton(() => {
       if (!sound && !isPlaying) {
-        // If no song is playing, start playing
+        // If we're in restoration mode, don't start a new random song
+        if (shouldRestoreAudio) {
+          console.log('⏸️ Restoration in progress, waiting for audio to restore...');
+          toast('🔄 Restoring your previous session...', { duration: 2000 });
+          return;
+        }
+        
+        // If we have a current song but no sound (restoration might have failed), play the current song
+        if (currentSong && songs.length > 0) {
+          console.log('▶️ Playing current song:', currentSong.title);
+          playSong(currentSong);
+          return;
+        }
+        
+        // If no current song and no songs available, show error
         if (songs.length === 0) {
           toast.error('🎵 No songs available. Please select some languages first.');
           return;
         }
+        
+        // Only start a new random song if there's no current song
         console.log('▶️ Starting playback...');
         playNextSong();
       } else if (sound) {
@@ -1096,7 +1113,7 @@ export function RadioProvider({ children }: RadioProviderProps) {
   };
 
   // Play a specific song
-  const playSong = (songToPlay: Song) => {
+  const playSong = useCallback((songToPlay: Song) => {
     // If there is already a sound playing, stop and unload it
     if (sound) {
       sound.stop();
@@ -1180,7 +1197,7 @@ export function RadioProvider({ children }: RadioProviderProps) {
         playNextSong();
       }, 500);
     }
-  };
+  }, [sound, volume, playNextSong, preloadNextSong, nextSound]);
 
   // Debounce function to prevent rapid button clicks
   const debounceButton = (callback: () => void) => {
