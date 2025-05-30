@@ -46,18 +46,29 @@ def generate_manifest():
         
         print(f"\n📁 Processing language: {language_name}")
         
-        # Find all MP3 files in this language directory
-        mp3_files = list(language_dir.glob("*.mp3"))
+        # Find all supported audio files in this language directory
+        audio_files = []
+        audio_files.extend(list(language_dir.glob("*.mp3")))
+        audio_files.extend(list(language_dir.glob("*.opus")))
         
-        if not mp3_files:
-            print(f"   ⚠️  No MP3 files found in {language_name}")
+        if not audio_files:
+            print(f"   ⚠️  No MP3 or OPUS files found in {language_name}")
             continue
         
-        for mp3_file in sorted(mp3_files):
-            # Remove .mp3 extension for manifest
-            song_title = mp3_file.stem
-            songs.append(song_title)
-            print(f"   ✅ Found: {song_title}")
+        # Process each audio file
+        for audio_file in sorted(audio_files):
+            # Store both title and extension
+            song_title = audio_file.stem
+            song_extension = audio_file.suffix.lower()
+            
+            # Create song entry with format information
+            song_entry = {
+                "title": song_title,
+                "format": song_extension[1:]  # Remove the dot from extension
+            }
+            
+            songs.append(song_entry)
+            print(f"   ✅ Found: {song_title}{song_extension}")
         
         if songs:
             manifest["languages"][language_name] = songs
@@ -82,9 +93,20 @@ def generate_manifest():
         for lang, songs in manifest["languages"].items():
             print(f"{lang}: {len(songs)} songs")
             if songs:
-                print(f"  First song: {songs[0]}")
+                first_song = songs[0]
+                if isinstance(first_song, dict):
+                    print(f"  First song: {first_song['title']}.{first_song['format']}")
+                else:
+                    # Backward compatibility with old format
+                    print(f"  First song: {first_song}.mp3")
+                
                 if len(songs) > 1:
-                    print(f"  Last song: {songs[-1]}")
+                    last_song = songs[-1]
+                    if isinstance(last_song, dict):
+                        print(f"  Last song: {last_song['title']}.{last_song['format']}")
+                    else:
+                        # Backward compatibility with old format
+                        print(f"  Last song: {last_song}.mp3")
         print("-" * 50)
         
         return True
@@ -127,14 +149,28 @@ def validate_manifest():
                 print(f"⚠️  Warning: No songs found for language '{lang}'")
                 continue
             
-            # Check for invalid characters in song names
+            # Check each song entry
             for song in songs:
-                if not isinstance(song, str):
-                    print(f"❌ Song title should be string: {song}")
+                if isinstance(song, dict):
+                    # New format with title and format
+                    if "title" not in song or "format" not in song:
+                        print(f"❌ Song entry missing 'title' or 'format': {song}")
+                        return False
+                    
+                    if not isinstance(song["title"], str) or not isinstance(song["format"], str):
+                        print(f"❌ Song title and format should be strings: {song}")
+                        return False
+                    
+                    if song["format"] not in ["mp3", "opus"]:
+                        print(f"⚠️  Warning: Unsupported format '{song['format']}' for song '{song['title']}'")
+                    
+                elif isinstance(song, str):
+                    # Old format - just a string (backward compatibility)
+                    if song.endswith('.mp3') or song.endswith('.opus'):
+                        print(f"⚠️  Warning: Song '{song}' includes file extension (should be in format field)")
+                else:
+                    print(f"❌ Invalid song entry type: {song}")
                     return False
-                
-                if song.endswith('.mp3'):
-                    print(f"⚠️  Warning: Song '{song}' includes .mp3 extension (should be removed)")
         
         print("✅ Manifest validation passed!")
         return True
@@ -167,6 +203,7 @@ def main():
     print("3. Test the URLs:")
     print("   - https://aiaudio.uzay.me/manifest.json")
     print("   - https://aiaudio.uzay.me/audio/English/[song-name].mp3")
+    print("   - https://aiaudio.uzay.me/audio/English/[song-name].opus")
     print("\n🚀 Your Audalithic app should now work with remote music!")
 
 if __name__ == "__main__":

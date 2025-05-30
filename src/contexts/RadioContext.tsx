@@ -281,7 +281,7 @@ export function RadioProvider({ children }: RadioProviderProps) {
         html5: true,
         preload: true,
         volume: volume,
-        format: ['mp3'],
+        format: ['mp3', 'opus'],
         onend: () => {
           // This will only be called if this preloaded song becomes the current song
           setTimeout(playNextSong, 300);
@@ -384,7 +384,7 @@ export function RadioProvider({ children }: RadioProviderProps) {
           src: [songToPlay.path],
           html5: true,
           volume: volume,
-          format: ['mp3'],
+          format: ['mp3', 'opus'],
           onend: () => {
             setTimeout(playNextSong, 300);
           },
@@ -463,7 +463,7 @@ export function RadioProvider({ children }: RadioProviderProps) {
         src: [songToPlay.path],
         html5: true,
         volume: volume,
-        format: ['mp3'],
+        format: ['mp3', 'opus'],
         onend: () => {
           // Use timeout to prevent immediate firing in case of race conditions
           setTimeout(playNextSong, 300);
@@ -726,7 +726,7 @@ export function RadioProvider({ children }: RadioProviderProps) {
           src: [lastSong.path],
           html5: true,
           volume: volume,
-          format: ['mp3'],
+          format: ['mp3', 'opus'],
           onend: () => {
             setTimeout(playNextSong, 300);
           },

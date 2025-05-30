@@ -3,6 +3,7 @@ export interface Song {
   title: string;
   language: string;
   path: string;
+  format: string; // Add format field to track file extension
 }
 
 export interface LanguageOption {
@@ -10,9 +11,15 @@ export interface LanguageOption {
   name: string;
 }
 
+// Support both old and new manifest formats for backward compatibility
+export interface SongEntry {
+  title: string;
+  format: string; // 'mp3' or 'opus'
+}
+
 export interface MusicManifest {
   languages: {
-    [languageId: string]: string[]; // language -> array of song titles (without .mp3)
+    [languageId: string]: (string | SongEntry)[]; // Support both old (string) and new (object) format
   };
 }
 
@@ -146,21 +153,44 @@ export async function getSongsByLanguages(languages: string[]): Promise<Song[]> 
     let allSongs: Song[] = [];
     
     for (const language of languages) {
-      const songTitles = manifest.languages[language];
+      const songEntries = manifest.languages[language];
       
-      if (!songTitles || !Array.isArray(songTitles)) {
+      if (!songEntries || !Array.isArray(songEntries)) {
         console.warn(`⚠️ No songs found for language: ${language}`);
         continue;
       }
       
-      const languageSongs = songTitles
-        .filter(title => typeof title === 'string' && title.trim().length > 0)
-        .map(title => ({
-          id: `${language}-${title}`,
-          title: title,
-          language: language,
-          path: `${baseUrl}/audio/${encodeURIComponent(language)}/${encodeURIComponent(title)}.mp3`
-        }));
+      const languageSongs = songEntries
+        .filter(entry => {
+          if (typeof entry === 'string') {
+            return entry.trim().length > 0;
+          } else if (typeof entry === 'object' && entry !== null) {
+            return entry.title && entry.title.trim().length > 0 && entry.format;
+          }
+          return false;
+        })
+        .map(entry => {
+          let title: string;
+          let format: string;
+          
+          if (typeof entry === 'string') {
+            // Old format - assume mp3
+            title = entry;
+            format = 'mp3';
+          } else {
+            // New format with explicit format
+            title = entry.title;
+            format = entry.format;
+          }
+          
+          return {
+            id: `${language}-${title}-${format}`,
+            title: title,
+            language: language,
+            format: format,
+            path: `${baseUrl}/audio/${encodeURIComponent(language)}/${encodeURIComponent(title)}.${format}`
+          };
+        });
       
       allSongs = [...allSongs, ...languageSongs];
     }
