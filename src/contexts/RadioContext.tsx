@@ -477,16 +477,6 @@ export function RadioProvider({ children }: RadioProviderProps) {
             playNextSong();
           }, 500);
         },
-        onload: () => {
-          // When audio metadata loads, try to get duration
-          console.log('Audio loaded, checking for duration...');
-          const loadedDuration = newSound.duration();
-          console.log('Duration after load:', loadedDuration);
-          if (loadedDuration && loadedDuration > 0 && isFinite(loadedDuration)) {
-            setDuration(loadedDuration);
-            console.log('Set duration from onload:', loadedDuration);
-          }
-        },
         onpause: () => {
           setIsPlaying(false);
         },
@@ -494,18 +484,7 @@ export function RadioProvider({ children }: RadioProviderProps) {
           setIsPlaying(true);
           setCurrentSong(songToPlay); // Update current song when playback actually starts
           setCurrentTime(0); // Reset current time when new song starts
-          
-          // Try to get duration immediately when play starts
-          const playDuration = newSound.duration();
-          console.log('Duration on play:', playDuration);
-          if (playDuration && playDuration > 0 && isFinite(playDuration)) {
-            setDuration(playDuration);
-            console.log('Set duration from onplay:', playDuration);
-          } else {
-            console.log('Duration not available yet, will retry...');
-            // Reset duration to 0 initially if not available, tracking effect will update it
-            setDuration(0);
-          }
+          setDuration(0); // Reset duration initially, will be set by the tracking effect
         }
       });
       
@@ -609,36 +588,27 @@ export function RadioProvider({ children }: RadioProviderProps) {
     let timeInterval: NodeJS.Timeout | null = null;
 
     if (sound && isPlaying) {
-      // Try to set initial duration immediately
-      const initialDuration = sound.duration();
-      console.log('Initial duration check:', initialDuration);
-      if (initialDuration && initialDuration > 0 && isFinite(initialDuration)) {
-        setDuration(initialDuration);
-        console.log('Set initial duration:', initialDuration);
+      // Set initial duration
+      const soundDuration = sound.duration();
+      if (soundDuration && soundDuration > 0) {
+        setDuration(soundDuration);
       }
 
-      // Update current time and duration more frequently
+      // Update current time every second
       timeInterval = setInterval(() => {
         if (sound && isPlaying) {
           const currentSeek = sound.seek();
-          if (typeof currentSeek === 'number' && isFinite(currentSeek)) {
+          if (typeof currentSeek === 'number') {
             setCurrentTime(currentSeek);
           }
           
-          // Keep trying to get duration until we have it
+          // Update duration if it wasn't set initially
           const soundDuration = sound.duration();
-          console.log('Duration check in interval:', soundDuration);
-          if (soundDuration && soundDuration > 0 && isFinite(soundDuration)) {
-            setDuration(prev => {
-              if (prev !== soundDuration) {
-                console.log('Updated duration from', prev, 'to', soundDuration);
-                return soundDuration;
-              }
-              return prev;
-            });
+          if (soundDuration && soundDuration > 0 && duration === 0) {
+            setDuration(soundDuration);
           }
         }
-      }, 500); // Check more frequently - every 500ms instead of 1000ms
+      }, 1000);
     } else {
       // Reset time when not playing
       setCurrentTime(0);
@@ -652,7 +622,7 @@ export function RadioProvider({ children }: RadioProviderProps) {
         clearInterval(timeInterval);
       }
     };
-  }, [sound, isPlaying]);
+  }, [sound, isPlaying, duration]);
 
   // Update the useEffect that uses preloadNextSong
   useEffect(() => {
