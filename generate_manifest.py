@@ -68,12 +68,22 @@ def generate_manifest():
             }
             
             songs.append(song_entry)
-            print(f"   ✅ Found: {song_title}{song_extension}")
+            
+            # Add warning for OPUS files about browser compatibility
+            if song_extension.lower() == '.opus':
+                print(f"   ✅ Found: {song_title}{song_extension} ⚠️  (Note: OPUS support varies by browser)")
+            else:
+                print(f"   ✅ Found: {song_title}{song_extension}")
         
         if songs:
             manifest["languages"][language_name] = songs
             total_songs += len(songs)
             print(f"   📊 Total songs in {language_name}: {len(songs)}")
+            
+            # Check if there are OPUS files and show additional info
+            opus_count = sum(1 for song in songs if song.get('format') == 'opus')
+            if opus_count > 0:
+                print(f"   ℹ️  OPUS files: {opus_count} (requires compatible browsers - Chrome, Firefox, Edge)")
     
     # Write manifest.json
     manifest_file = Path("manifest.json")
@@ -86,6 +96,19 @@ def generate_manifest():
         print(f"   File location: {manifest_file.absolute()}")
         print(f"   Total languages: {len(manifest['languages'])}")
         print(f"   Total songs: {total_songs}")
+        
+        # Check for OPUS files and show compatibility warning
+        total_opus = 0
+        for lang, songs in manifest["languages"].items():
+            opus_count = sum(1 for song in songs if (isinstance(song, dict) and song.get('format') == 'opus'))
+            total_opus += opus_count
+        
+        if total_opus > 0:
+            print(f"\n⚠️  OPUS Compatibility Notice:")
+            print(f"   Total OPUS files: {total_opus}")
+            print(f"   OPUS is supported in Chrome, Firefox, Edge, and modern browsers")
+            print(f"   Safari has limited OPUS support (requires CAF container in some versions)")
+            print(f"   For maximum compatibility, also provide MP3 versions of OPUS files")
         
         # Show manifest preview
         print(f"\n📋 Manifest preview:")

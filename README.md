@@ -142,3 +142,49 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 - Music files should be hosted on your remote music server organized by language
 - Make sure you have the rights to use any music you host
 - The app is designed to work with static hosting platforms like Cloudflare Pages
+
+## 🎵 Audio Format Support
+
+Audalithic supports multiple audio formats for maximum compatibility and quality:
+
+### Supported Formats
+- **MP3** - Universal compatibility, widely supported
+- **OPUS** - Modern codec with superior compression and quality
+
+### Browser Compatibility
+- **OPUS**: Chrome 33+, Firefox 15+, Edge 14+, Opera 20+
+- **Safari**: Limited OPUS support (requires special encoding)
+- **MP3**: Universal support across all browsers
+
+### Using OPUS Files
+
+For best results, we recommend providing both OPUS and MP3 versions of your audio files:
+
+```
+public/audio/English/
+├── song1.opus  (smaller size, better quality)
+├── song1.mp3   (fallback for compatibility)
+```
+
+The app automatically detects the best format for each browser and falls back gracefully.
+
+### Converting to OPUS
+
+To create OPUS files from your existing audio:
+
+```bash
+# Install FFmpeg first
+# macOS: brew install ffmpeg
+# Ubuntu: sudo apt install ffmpeg
+# Windows: Download from https://ffmpeg.org/
+
+# Convert MP3 to OPUS
+ffmpeg -i input.mp3 -c:a libopus -b:a 128k output.opus
+
+# Convert WAV to OPUS with high quality
+ffmpeg -i input.wav -c:a libopus -b:a 192k output.opus
+```
+
+See `OPUS_SUPPORT.md` for detailed information about OPUS implementation and browser compatibility.
+
+## ⚙️ Setup

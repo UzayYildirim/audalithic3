@@ -275,23 +275,33 @@ export function RadioProvider({ children }: RadioProviderProps) {
     const randomIndex = Math.floor(Math.random() * songsToPickFrom.length);
     const nextSongToPlay = songsToPickFrom[randomIndex];
     
+    // Determine format array based on the song's format
+    let formatArray = ['mp3', 'opus'];
+    if (nextSongToPlay.format === 'opus') {
+      // For OPUS files, try OPUS first, then fallback to mp3 if available
+      formatArray = ['opus', 'mp3'];
+    } else if (nextSongToPlay.format === 'mp3') {
+      // For MP3 files, prefer mp3
+      formatArray = ['mp3'];
+    }
+    
     try {
       const newNextSound = new Howl({
         src: [nextSongToPlay.path],
         html5: true,
         preload: true,
         volume: volume,
-        format: ['mp3', 'opus'],
+        format: formatArray,
         onend: () => {
           // This will only be called if this preloaded song becomes the current song
           setTimeout(playNextSong, 300);
         },
         onloaderror: (id, error) => {
-          console.error('Error preloading next song:', nextSongToPlay.title, error);
+          console.error('Error preloading next song:', nextSongToPlay.title, 'Format:', nextSongToPlay.format, 'Error:', error);
           setNextSound(null);
           
           // Don't show toast for preload errors to avoid spam, just log
-          console.warn('⚠️ Could not preload next song, will try another when needed');
+          console.warn(`⚠️ Could not preload next song (${nextSongToPlay.format} format), will try another when needed`);
           
           // Try again with a different song after a delay
           setTimeout(() => {
@@ -299,7 +309,7 @@ export function RadioProvider({ children }: RadioProviderProps) {
           }, 1000);
         },
         onload: () => {
-          console.log('✅ Next song preloaded:', nextSongToPlay.title);
+          console.log('✅ Next song preloaded:', nextSongToPlay.title, 'Format:', nextSongToPlay.format);
         }
       });
       setNextSound(newNextSound);
@@ -380,17 +390,25 @@ export function RadioProvider({ children }: RadioProviderProps) {
     try {
       // If we don't have a sound to use, create a new one
       if (!soundToUse) {
+        // Determine format array based on the song's format
+        let formatArray = ['mp3', 'opus'];
+        if (songToPlay.format === 'opus') {
+          formatArray = ['opus', 'mp3'];
+        } else if (songToPlay.format === 'mp3') {
+          formatArray = ['mp3'];
+        }
+        
         soundToUse = new Howl({
           src: [songToPlay.path],
           html5: true,
           volume: volume,
-          format: ['mp3', 'opus'],
+          format: formatArray,
           onend: () => {
             setTimeout(playNextSong, 300);
           },
           onloaderror: (id, error) => {
-            console.error('Error loading song:', songToPlay?.title, error);
-            toast.error(`❌ Could not load "${songToPlay?.title}". Trying next song...`);
+            console.error('Error loading song:', songToPlay?.title, 'Format:', songToPlay?.format, 'Error:', error);
+            toast.error(`❌ Could not load "${songToPlay?.title}" (${songToPlay?.format} format). Trying next song...`);
             setCurrentSong(null);
             setIsPlaying(false);
             
@@ -401,7 +419,7 @@ export function RadioProvider({ children }: RadioProviderProps) {
             setTimeout(() => playNextSong(), 500);
           },
           onload: () => {
-            console.log('✅ Song loaded successfully:', songToPlay?.title);
+            console.log('✅ Song loaded successfully:', songToPlay?.title, 'Format:', songToPlay?.format);
           }
         });
       }
@@ -457,19 +475,28 @@ export function RadioProvider({ children }: RadioProviderProps) {
       setIsPlaying(false); // Ensure playing state is reset
     }
     
+    // Determine format array based on the song's format
+    let formatArray = ['mp3', 'opus'];
+    if (songToPlay.format === 'opus') {
+      formatArray = ['opus', 'mp3'];
+    } else if (songToPlay.format === 'mp3') {
+      formatArray = ['mp3'];
+    }
+    
     try {
       // Create a new Howl instance for the song
       const newSound = new Howl({
         src: [songToPlay.path],
         html5: true,
         volume: volume,
-        format: ['mp3', 'opus'],
+        format: formatArray,
         onend: () => {
           // Use timeout to prevent immediate firing in case of race conditions
           setTimeout(playNextSong, 300);
         },
-        onloaderror: () => {
-          console.error('Error loading song:', songToPlay.title);
+        onloaderror: (id, error) => {
+          console.error('Error loading song:', songToPlay.title, 'Format:', songToPlay.format, 'Error:', error);
+          toast.error(`❌ Could not load "${songToPlay.title}" (${songToPlay.format} format). Trying next song...`);
           setCurrentSong(null);
           setIsPlaying(false);
           // Try to recover by playing the next song
@@ -485,6 +512,9 @@ export function RadioProvider({ children }: RadioProviderProps) {
           setCurrentSong(songToPlay); // Update current song when playback actually starts
           setCurrentTime(0); // Reset current time when new song starts
           setDuration(0); // Reset duration initially, will be set by the tracking effect
+        },
+        onload: () => {
+          console.log('✅ Song loaded successfully:', songToPlay.title, 'Format:', songToPlay.format);
         }
       });
       
@@ -721,24 +751,32 @@ export function RadioProvider({ children }: RadioProviderProps) {
       }
       
       try {
+        // Determine format array based on the song's format
+        let formatArray = ['mp3', 'opus'];
+        if (lastSong.format === 'opus') {
+          formatArray = ['opus', 'mp3'];
+        } else if (lastSong.format === 'mp3') {
+          formatArray = ['mp3'];
+        }
+        
         // Create a new Howl instance for the previous song
         const newSound = new Howl({
           src: [lastSong.path],
           html5: true,
           volume: volume,
-          format: ['mp3', 'opus'],
+          format: formatArray,
           onend: () => {
             setTimeout(playNextSong, 300);
           },
           onloaderror: (id, error) => {
-            console.error('Error loading previous song:', lastSong.title, error);
-            toast.error(`❌ Could not load previous song "${lastSong.title}". Playing current playlist instead.`);
+            console.error('Error loading previous song:', lastSong.title, 'Format:', lastSong.format, 'Error:', error);
+            toast.error(`❌ Could not load previous song "${lastSong.title}" (${lastSong.format} format). Playing current playlist instead.`);
             setCurrentSong(null);
             setIsPlaying(false);
             setTimeout(() => playNextSong(), 500);
           },
           onload: () => {
-            console.log('✅ Previous song loaded successfully:', lastSong.title);
+            console.log('✅ Previous song loaded successfully:', lastSong.title, 'Format:', lastSong.format);
           }
         });
 
