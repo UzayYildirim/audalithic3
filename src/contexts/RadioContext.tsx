@@ -50,27 +50,53 @@ export function RadioProvider({ children }: RadioProviderProps) {
   const [sound, setSound] = useState<Howl | null>(null);
   const [nextSound, setNextSound] = useState<Howl | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
-  const [volume, setVolume] = useState(0.7);
+  const [volume, setVolume] = useState(1.0);
   const [loading, setLoading] = useState(true);
   const [isButtonDisabled, setIsButtonDisabled] = useState(false);
   const buttonTimerRef = useRef<NodeJS.Timeout | null>(null);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
 
-  // Show offline message when user first visits
-  useEffect(() => {
-    // Check if this is the first visit by checking localStorage
-    const hasVisited = localStorage.getItem('audalithic-visited');
-    if (!hasVisited) {
-      // Show the offline message after a brief delay for better UX
-      setTimeout(() => {
-        toast('🔧 Generation server is currently offline, falling back to previously generated tracks.', {
-          duration: 6000,
-          icon: '📡',
-        });
-      }, 1500);
-      localStorage.setItem('audalithic-visited', 'true');
+  // Audio cleanup function to prevent duplicate sounds
+  const cleanupAudio = useCallback((audioInstance: Howl | null, clearNext: boolean = false) => {
+    if (audioInstance) {
+      // Stop the sound
+      if (audioInstance.playing()) {
+        audioInstance.stop();
+      }
+      
+      // Remove all event listeners to prevent callbacks
+      audioInstance.off();
+      
+      // Unload the audio to free memory
+      audioInstance.unload();
     }
+    
+    // Clear the nextSound if requested
+    if (clearNext) {
+      setNextSound(null);
+    }
+  }, []);
+
+  // Comprehensive cleanup for all audio instances
+  const cleanupAllAudio = useCallback(() => {
+    cleanupAudio(sound);
+    cleanupAudio(nextSound);
+    setSound(null);
+    setNextSound(null);
+    setIsPlaying(false);
+    setCurrentTime(0);
+  }, [sound, nextSound, cleanupAudio]);
+
+  // Show offline message on every page load
+  useEffect(() => {
+    // Show the offline message after a brief delay for better UX
+    setTimeout(() => {
+      toast('🔧 Generation server is currently offline, falling back to previously generated tracks.', {
+        duration: 6000,
+        icon: '📡',
+      });
+    }, 1500);
   }, []);
 
   // Load saved preferences from localStorage
@@ -225,190 +251,147 @@ export function RadioProvider({ children }: RadioProviderProps) {
 
   // Wrap preloadNextSong in useCallback
   const preloadNextSong = useCallback(() => {
-    // If we already have a next sound queued, don't try to preload another
+    // If we already have a next sound queued, clean it up first
     if (nextSound) {
+      cleanupAudio(nextSound);
+      setNextSound(null);
+    }
+
+    const availSongs = availableSongs.length > 0 ? 
+      availableSongs : 
+      songs.filter(song => song.id !== currentSong?.id);
+    
+    if (availSongs.length === 0) {
+      console.warn('No songs available to preload');
       return;
     }
 
-    // If we have no songs at all, don't try to preload
-    if (songs.length === 0) {
-      console.warn('No songs in playlist');
+    // Get a random song to preload
+    const randomIndex = Math.floor(Math.random() * availSongs.length);
+    const nextSongToPlay = availSongs[randomIndex];
+    
+    if (!nextSongToPlay) {
+      console.warn('No next song available to preload');
       return;
     }
 
-    // Check if we've played all songs
-    const unplayedSongs = songs.filter(song => 
-      !playedSongs.includes(song.id) && song.id !== currentSong?.id
-    );
-    
-    // Determine songs to pick from
-    let songsToPickFrom;
-    
-    if (unplayedSongs.length > 0) {
-      // We have unplayed songs, use them
-      songsToPickFrom = unplayedSongs;
-    } else if (availableSongs.length > 0) {
-      // No unplayed songs but we have available songs
-      songsToPickFrom = availableSongs;
-    } else {
-      // Reset the playlist if all songs have been played
-      console.log('All songs have been played, resetting available songs for preloading');
-      
-      // Reset available songs to all songs except current
-      const newAvailableSongs = songs.filter(song => song.id !== currentSong?.id);
-      setAvailableSongs(newAvailableSongs);
-      
-      // Only keep current song in played list
-      setPlayedSongs(currentSong ? [currentSong.id] : []);
-      
-      // Use new available songs
-      songsToPickFrom = newAvailableSongs;
-    }
-    
-    // If we have no songs to pick from even after resetting (very unlikely)
-    if (songsToPickFrom.length === 0) {
-      console.warn('No songs available for preloading');
-      return;
-    }
-    
-    // Select a random song
-    const randomIndex = Math.floor(Math.random() * songsToPickFrom.length);
-    const nextSongToPlay = songsToPickFrom[randomIndex];
-    
-    // Determine format array based on the song's format
-    let formatArray = ['mp3', 'opus'];
-    if (nextSongToPlay.format === 'opus') {
-      // For OPUS files, try OPUS first, then fallback to mp3 if available
-      formatArray = ['opus', 'mp3'];
-    } else if (nextSongToPlay.format === 'mp3') {
-      // For MP3 files, prefer mp3
-      formatArray = ['mp3'];
-    }
+    console.log('🎵 Preloading next song:', nextSongToPlay.title);
     
     try {
       const newNextSound = new Howl({
         src: [nextSongToPlay.path],
         html5: true,
-        preload: true,
         volume: volume,
-        format: formatArray,
-        onend: () => {
-          // This will only be called if this preloaded song becomes the current song
-          setTimeout(playNextSong, 300);
-        },
+        preload: true,
+        format: ['mp3'],
         onloaderror: (id, error) => {
-          console.error('Error preloading next song:', nextSongToPlay.title, 'Format:', nextSongToPlay.format, 'Error:', error);
+          console.error('Error preloading next song:', nextSongToPlay.title, 'Error:', error);
+          cleanupAudio(newNextSound);
           setNextSound(null);
-          
-          // Don't show toast for preload errors to avoid spam, just log
-          console.warn(`⚠️ Could not preload next song (${nextSongToPlay.format} format), will try another when needed`);
-          
-          // Try again with a different song after a delay
-          setTimeout(() => {
-            preloadNextSong();
-          }, 1000);
         },
         onload: () => {
-          console.log('✅ Next song preloaded:', nextSongToPlay.title, 'Format:', nextSongToPlay.format);
+          console.log('✅ Next song preloaded successfully:', nextSongToPlay.title);
         }
       });
+
       setNextSound(newNextSound);
     } catch (error) {
-      console.error('Error creating Howl instance for preload:', error);
-      setNextSound(null);
-      
+      console.error('Error creating preload sound:', error);
       // Try again after a delay
       setTimeout(() => {
         preloadNextSong();
       }, 1000);
     }
-  }, [nextSound, songs, playedSongs, currentSong, volume, availableSongs, setAvailableSongs, setPlayedSongs, setNextSound]);
+  }, [nextSound, songs, playedSongs, currentSong, volume, availableSongs, cleanupAudio]);
 
   // Play the next song
   const playNextSong = () => {
-    // If we have no songs at all, don't try to play
-    if (songs.length === 0) {
-      console.warn('No songs available in the playlist');
-      toast.error('🎵 No songs available. Please select some languages first.');
-      return;
-    }
+    // Prevent multiple simultaneous calls
+    debounceButton(() => {
+      console.log('🎵 Playing next song...');
 
-    // If there is already a sound playing, stop it and clean up listeners
-    if (sound) {
-      sound.stop();
-      sound.unload(); // Completely unload the sound to ensure it doesn't interfere
-      setSound(null); // Clear the sound reference
-      setIsPlaying(false); // Ensure playing state is reset
-    }
+      // Clean up current song completely
+      if (sound) {
+        cleanupAudio(sound);
+        setSound(null);
+        setIsPlaying(false);
+      }
 
-    // Check if we've played all songs and need to reset
-    if (playedSongs.length >= songs.length - 1) {
-      console.log('All songs have been played, resetting playlist');
-      // Keep only current song in played songs list
-      setPlayedSongs(currentSong ? [currentSong.id] : []);
-      // Reset available songs to all songs except current
-      setAvailableSongs(songs.filter(song => song.id !== currentSong?.id));
-    }
+      // Determine which song to play
+      let songToPlay: Song | null = null;
+      let soundToUse: Howl | null = null;
 
-    let songToPlay: Song | null = null;
-    let soundToUse: Howl | null = null;
-
-    // First try to use the preloaded next sound if available
-    if (nextSound) {
-      // Get the source URL from the next sound
-      const nextSoundSrc = (nextSound as any)._src?.[0] || '';
-      
-      // Find the corresponding song
-      songToPlay = availableSongs.find(song => 
-        song.path === nextSoundSrc
-      ) || null;
-
-      if (songToPlay) {
+      // Try to use the preloaded song first
+      if (nextSound) {
+        console.log('🎵 Using preloaded song');
         soundToUse = nextSound;
-        setNextSound(null); // Clear the next sound as we're using it
-        console.log('✅ Using preloaded song:', songToPlay.title);
-      }
-    }
+        setNextSound(null); // Clear the preloaded song
 
-    // If we couldn't use the preloaded sound, create a new one
-    if (!songToPlay) {
-      const availSongs = availableSongs.length > 0 ? 
-        availableSongs : 
-        songs.filter(song => song.id !== currentSong?.id);
-      
-      if (availSongs.length === 0) {
-        console.warn('No songs available to play');
-        toast.error('🎵 No more songs available. Please refresh or select different languages.');
-        return;
-      }
+        // Find the song that was preloaded - we need to identify it from available songs
+        const availSongs = availableSongs.length > 0 ? 
+          availableSongs : 
+          songs.filter(song => song.id !== currentSong?.id);
 
-      const randomIndex = Math.floor(Math.random() * availSongs.length);
-      songToPlay = availSongs[randomIndex];
-      console.log('🎵 Playing new song:', songToPlay.title);
-    }
-
-    try {
-      // If we don't have a sound to use, create a new one
-      if (!soundToUse) {
-        // Determine format array based on the song's format
-        let formatArray = ['mp3', 'opus'];
-        if (songToPlay.format === 'opus') {
-          formatArray = ['opus', 'mp3'];
-        } else if (songToPlay.format === 'mp3') {
-          formatArray = ['mp3'];
+        if (availSongs.length > 0) {
+          // Since we don't store which song was preloaded, pick a random one
+          // This is a limitation but the preloaded song will still work
+          const randomIndex = Math.floor(Math.random() * availSongs.length);
+          songToPlay = availSongs[randomIndex];
         }
+      }
+
+      // If we couldn't use the preloaded sound, create a new one
+      if (!songToPlay) {
+        const availSongs = availableSongs.length > 0 ? 
+          availableSongs : 
+          songs.filter(song => song.id !== currentSong?.id);
         
-        soundToUse = new Howl({
-          src: [songToPlay.path],
-          html5: true,
-          volume: volume,
-          format: formatArray,
-          onend: () => {
+        if (availSongs.length === 0) {
+          console.warn('No songs available to play');
+          toast.error('🎵 No more songs available. Please refresh or select different languages.');
+          return;
+        }
+
+        const randomIndex = Math.floor(Math.random() * availSongs.length);
+        songToPlay = availSongs[randomIndex];
+        console.log('🎵 Playing new song:', songToPlay.title);
+      }
+
+      try {
+        // If we don't have a sound to use, create a new one
+        if (!soundToUse) {
+          soundToUse = new Howl({
+            src: [songToPlay.path],
+            html5: true,
+            volume: volume,
+            format: ['mp3'],
+            onend: () => {
+              setTimeout(playNextSong, 300);
+            },
+            onloaderror: (id, error) => {
+              console.error('Error loading song:', songToPlay?.title, 'Error:', error);
+              toast.error(`❌ Could not load "${songToPlay?.title}". Trying next song...`);
+              setCurrentSong(null);
+              setIsPlaying(false);
+              
+              // Remove this problematic song from available songs
+              setAvailableSongs(prev => prev.filter(song => song.id !== songToPlay?.id));
+              
+              // Try next song after a short delay
+              setTimeout(() => playNextSong(), 500);
+            },
+            onload: () => {
+              console.log('✅ Song loaded successfully:', songToPlay?.title);
+            }
+          });
+        } else {
+          // Add handlers to the preloaded sound
+          soundToUse.on('end', () => {
             setTimeout(playNextSong, 300);
-          },
-          onloaderror: (id, error) => {
-            console.error('Error loading song:', songToPlay?.title, 'Format:', songToPlay?.format, 'Error:', error);
-            toast.error(`❌ Could not load "${songToPlay?.title}" (${songToPlay?.format} format). Trying next song...`);
+          });
+          soundToUse.on('loaderror', (id, error) => {
+            console.error('Error with preloaded song:', songToPlay?.title, 'Error:', error);
+            toast.error(`❌ Could not play "${songToPlay?.title}". Trying next song...`);
             setCurrentSong(null);
             setIsPlaying(false);
             
@@ -417,70 +400,54 @@ export function RadioProvider({ children }: RadioProviderProps) {
             
             // Try next song after a short delay
             setTimeout(() => playNextSong(), 500);
-          },
-          onload: () => {
-            console.log('✅ Song loaded successfully:', songToPlay?.title, 'Format:', songToPlay?.format);
+          });
+        }
+
+        // Add play event handler
+        soundToUse.on('play', () => {
+          setIsPlaying(true);
+          setCurrentSong(songToPlay);
+          console.log('▶️ Now playing:', songToPlay?.title);
+
+          // Add this song to played songs and remove from available songs
+          if (songToPlay) {
+            setPlayedSongs(prev => [...prev, songToPlay.id]);
+            setAvailableSongs(prev => prev.filter(song => song.id !== songToPlay.id));
           }
         });
-      }
 
-      // Add play event handler
-      soundToUse.on('play', () => {
-        setIsPlaying(true);
-        setCurrentSong(songToPlay);
-        setCurrentTime(0); // Reset current time when new song starts
-        setDuration(0); // Reset duration initially, will be set by the tracking effect
-        console.log('▶️ Now playing:', songToPlay?.title);
-      });
+        // Set and play the sound
+        setSound(soundToUse);
+        soundToUse.play();
 
-      // Update the current song in previous songs list
-      if (currentSong) {
-        setPreviousSongs(prev => [...prev, currentSong]);
-      }
-      
-      // Update played and available songs
-      setPlayedSongs(prev => [...prev, songToPlay!.id]);
-      setAvailableSongs(prev => prev.filter(song => song.id !== songToPlay!.id));
-      
-      // Set and play the sound
-      setSound(soundToUse);
-      soundToUse.play();
-      
-      // Preload next song after a delay
-      setTimeout(() => {
-        if (!nextSound) {
+        // Preload next song after a delay
+        setTimeout(() => {
           preloadNextSong();
-        }
-      }, 500);
-    } catch (error) {
-      console.error('Error playing song:', error);
-      toast.error(`❌ Error playing "${songToPlay?.title}". Trying next song...`);
-      setCurrentSong(null);
-      setIsPlaying(false);
-      
-      // Remove this problematic song from available songs
-      setAvailableSongs(prev => prev.filter(song => song.id !== songToPlay?.id));
-      
-      setTimeout(() => playNextSong(), 500);
-    }
+        }, 1000);
+
+      } catch (error) {
+        console.error('Error playing song:', error);
+        toast.error(`❌ Error playing "${songToPlay?.title}". Trying next song...`);
+        setCurrentSong(null);
+        setIsPlaying(false);
+        setTimeout(() => playNextSong(), 500);
+      }
+    });
   };
 
   // Play a specific song
   const playSong = (songToPlay: Song) => {
-    // If there is already a sound playing, stop and unload it
+    // Clean up current audio completely
     if (sound) {
-      sound.stop();
-      sound.unload(); // Completely unload the sound to ensure it doesn't interfere
-      setSound(null); // Clear sound reference
-      setIsPlaying(false); // Ensure playing state is reset
+      cleanupAudio(sound);
+      setSound(null);
+      setIsPlaying(false);
     }
     
-    // Determine format array based on the song's format
-    let formatArray = ['mp3', 'opus'];
-    if (songToPlay.format === 'opus') {
-      formatArray = ['opus', 'mp3'];
-    } else if (songToPlay.format === 'mp3') {
-      formatArray = ['mp3'];
+    // Also clean up preloaded song since we're changing tracks
+    if (nextSound) {
+      cleanupAudio(nextSound);
+      setNextSound(null);
     }
     
     try {
@@ -489,14 +456,14 @@ export function RadioProvider({ children }: RadioProviderProps) {
         src: [songToPlay.path],
         html5: true,
         volume: volume,
-        format: formatArray,
+        format: ['mp3'],
         onend: () => {
           // Use timeout to prevent immediate firing in case of race conditions
           setTimeout(playNextSong, 300);
         },
         onloaderror: (id, error) => {
-          console.error('Error loading song:', songToPlay.title, 'Format:', songToPlay.format, 'Error:', error);
-          toast.error(`❌ Could not load "${songToPlay.title}" (${songToPlay.format} format). Trying next song...`);
+          console.error('Error loading song:', songToPlay.title, 'Error:', error);
+          toast.error(`❌ Could not load "${songToPlay.title}". Trying next song...`);
           setCurrentSong(null);
           setIsPlaying(false);
           // Try to recover by playing the next song
@@ -514,30 +481,36 @@ export function RadioProvider({ children }: RadioProviderProps) {
           setDuration(0); // Reset duration initially, will be set by the tracking effect
         },
         onload: () => {
-          console.log('✅ Song loaded successfully:', songToPlay.title, 'Format:', songToPlay.format);
+          console.log('✅ Song loaded successfully:', songToPlay.title);
         }
       });
-      
-      // Set the current sound
+
+      // Set and play the sound
       setSound(newSound);
-      
-      // Play the sound
       newSound.play();
-      
-      // Immediately preload the next song
-      setTimeout(() => {
-        if (!nextSound) {
-          preloadNextSong();
+
+      // Update previous songs for backward navigation
+      setPreviousSongs(prev => {
+        const newPrevious = [...prev];
+        if (currentSong) {
+          newPrevious.push(currentSong);
+          // Keep only last 10 previous songs to prevent memory issues
+          if (newPrevious.length > 10) {
+            newPrevious.shift();
+          }
         }
-      }, 100);
-    } catch (error) {
-      console.error('Error creating or playing sound:', error);
-      setCurrentSong(null);
-      setIsPlaying(false);
-      // Try to recover
+        return newPrevious;
+      });
+
+      // Preload next song after the current one starts
       setTimeout(() => {
-        playNextSong();
+        preloadNextSong();
       }, 500);
+
+    } catch (error) {
+      console.error('Error creating sound for song:', error);
+      toast.error(`❌ Error playing "${songToPlay.title}". Trying next song...`);
+      setTimeout(() => playNextSong(), 500);
     }
   };
 
@@ -677,8 +650,11 @@ export function RadioProvider({ children }: RadioProviderProps) {
         return;
       }
 
+      // Clean up current audio completely
       if (sound) {
-        sound.off('end'); // Remove the event listener to avoid duplicate calls
+        cleanupAudio(sound);
+        setSound(null);
+        setIsPlaying(false);
       }
       
       console.log('⏭️ Skipping to next song...');
@@ -724,59 +700,55 @@ export function RadioProvider({ children }: RadioProviderProps) {
   const previousSong = () => {
     debounceButton(() => {
       if (previousSongs.length === 0) {
-        toast('🎵 No previous songs available.');
+        toast('🎵 No previous songs available');
         return;
       }
-      
-      console.log('⏮️ Going to previous song...');
-      
+
+      // Clean up current audio completely
+      if (sound) {
+        cleanupAudio(sound);
+        setSound(null);
+        setIsPlaying(false);
+      }
+
+      // Also clean up preloaded song since we're changing tracks
+      if (nextSound) {
+        cleanupAudio(nextSound);
+        setNextSound(null);
+      }
+
       // Get the last song from previous songs
       const lastSong = previousSongs[previousSongs.length - 1];
       
       // Remove it from previous songs
       setPreviousSongs(prev => prev.slice(0, -1));
       
-      // If there is a current song, add it back to available songs
+      // Add current song to available songs if we have one
       if (currentSong) {
-        setAvailableSongs(prev => [currentSong, ...prev]);
+        setAvailableSongs(prev => [...prev, currentSong]);
+        // Remove current song from played songs
         setPlayedSongs(prev => prev.filter(id => id !== currentSong.id));
       }
       
-      // If there is already a sound playing, stop it and remove listeners
-      if (sound) {
-        sound.off(); // Remove all event listeners
-        sound.stop();
-        sound.unload(); // Completely unload the sound to ensure it doesn't interfere
-        setSound(null); // Clear the sound reference to prevent it from continuing to play
-      }
-      
       try {
-        // Determine format array based on the song's format
-        let formatArray = ['mp3', 'opus'];
-        if (lastSong.format === 'opus') {
-          formatArray = ['opus', 'mp3'];
-        } else if (lastSong.format === 'mp3') {
-          formatArray = ['mp3'];
-        }
-        
         // Create a new Howl instance for the previous song
         const newSound = new Howl({
           src: [lastSong.path],
           html5: true,
           volume: volume,
-          format: formatArray,
+          format: ['mp3'],
           onend: () => {
             setTimeout(playNextSong, 300);
           },
           onloaderror: (id, error) => {
-            console.error('Error loading previous song:', lastSong.title, 'Format:', lastSong.format, 'Error:', error);
-            toast.error(`❌ Could not load previous song "${lastSong.title}" (${lastSong.format} format). Playing current playlist instead.`);
+            console.error('Error loading previous song:', lastSong.title, 'Error:', error);
+            toast.error(`❌ Could not load previous song "${lastSong.title}". Playing current playlist instead.`);
             setCurrentSong(null);
             setIsPlaying(false);
             setTimeout(() => playNextSong(), 500);
           },
           onload: () => {
-            console.log('✅ Previous song loaded successfully:', lastSong.title, 'Format:', lastSong.format);
+            console.log('✅ Previous song loaded successfully:', lastSong.title);
           }
         });
 
@@ -793,9 +765,7 @@ export function RadioProvider({ children }: RadioProviderProps) {
 
         // Preload next song after a delay
         setTimeout(() => {
-          if (!nextSound) {
-            preloadNextSong();
-          }
+          preloadNextSong();
         }, 500);
       } catch (error) {
         console.error('Error playing previous song:', error);
@@ -806,6 +776,13 @@ export function RadioProvider({ children }: RadioProviderProps) {
       }
     });
   };
+
+  // Cleanup all audio when component unmounts
+  useEffect(() => {
+    return () => {
+      cleanupAllAudio();
+    };
+  }, [cleanupAllAudio]);
 
   const value = {
     languages,

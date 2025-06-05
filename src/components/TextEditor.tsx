@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
+import { useEdit } from '@/contexts/EditContext';
 
 interface TextBox {
   id: string;
@@ -41,7 +42,7 @@ const isImageBox = (element: EditorElement): element is ImageBox => {
 };
 
 export default function TextEditor() {
-  const [isEditing, setIsEditing] = useState(false);
+  const { isEditing, setIsEditing } = useEdit();
   const [elements, setElements] = useState<EditorElement[]>([]);
   const [activeTextBox, setActiveTextBox] = useState<string | null>(null);
   const [editingText, setEditingText] = useState('');
@@ -480,23 +481,6 @@ export default function TextEditor() {
                   >
                     {formatTime(element.timeLeft)}
                   </div>
-                  
-                  {isEditing && (
-                    <div className="flex space-x-2 mt-3">
-                      <button
-                        onClick={(e) => toggleCountdown(element.id, e)}
-                        className="px-3 py-1 rounded-md bg-black/30 hover:bg-black/50 text-sm text-white backdrop-blur-md border border-white/20"
-                      >
-                        {element.isRunning ? 'Pause' : 'Start'}
-                      </button>
-                      <button
-                        onClick={(e) => resetCountdown(element.id, e)}
-                        className="px-3 py-1 rounded-md bg-black/30 hover:bg-black/50 text-sm text-white backdrop-blur-md border border-white/20"
-                      >
-                        Reset
-                      </button>
-                    </div>
-                  )}
                 </div>
               )}
               
@@ -539,6 +523,34 @@ export default function TextEditor() {
               )}
             </div>
           </div>
+
+          {/* Countdown Buttons - Positioned outside the element controls overlay */}
+          {isCountdownBox(element) && isEditing && activeTextBox !== element.id && (
+            <div className="absolute top-full left-1/2 -translate-x-1/2 mt-3 flex space-x-2 z-30" style={{ transform: `scale(${element.scale}) translateX(-50%)`, transformOrigin: 'center top' }}>
+              <button
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  toggleCountdown(element.id, e);
+                }}
+                className="px-3 py-1 rounded-md bg-black/30 hover:bg-black/50 text-sm text-white backdrop-blur-md border border-white/20 cursor-pointer"
+                style={{ pointerEvents: 'auto' }}
+              >
+                {element.isRunning ? 'Pause' : 'Start'}
+              </button>
+              <button
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  resetCountdown(element.id, e);
+                }}
+                className="px-3 py-1 rounded-md bg-black/30 hover:bg-black/50 text-sm text-white backdrop-blur-md border border-white/20 cursor-pointer"
+                style={{ pointerEvents: 'auto' }}
+              >
+                Reset
+              </button>
+            </div>
+          )}
 
           {/* Element Controls */}
           {isEditing && activeTextBox !== element.id && focusedElement === element.id && (

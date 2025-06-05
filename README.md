@@ -1,64 +1,49 @@
-# Audalithic - Multilingual Radio
+# Audalithic
 
-Audalithic is a beautiful, intuitive radio web application that allows users to listen to songs in multiple languages. The player is designed to be embeddable and has a transparent background to seamlessly integrate with any website.
+A modern, real-time AI-powered radio streaming application built with Next.js. Audalithic provides a seamless music listening experience with support for multiple languages and real-time streaming.
 
-## Features
+## 🌟 Features
 
-- Select from multiple language options (English, Spanish, French, Turkish, Tagalog, Nepali, Hindi, Instrumental, Ukrainian, Korean, Chinese)
-- Plays songs randomly from selected languages
-- Never repeats songs during a session
-- Remembers your language preferences and played songs between sessions
-- Beautiful, modern UI with a transparent background for embedding
+- **Real-time Radio Streaming**: Continuous music playback with automatic track transitions
+- **Multi-language Support**: Choose from various language tracks
+- **Modern UI**: Clean, responsive design with smooth animations
+- **Background Particles**: Interactive particle system for visual appeal
+- **Volume Control**: Smooth volume adjustment
+- **Previous/Next Controls**: Navigate through your listening history
+- **Responsive Design**: Works perfectly on desktop and mobile
 
-## Environment Variables
+## 📋 Requirements
 
-Before running the application, you need to set up the following environment variables:
+### Music Server Setup
 
-### Required Environment Variables
+You need a remote music server hosting:
 
-Create a `.env.local` file in the root directory with:
+1. **Audio files** organized by language:
+   ```
+   your-music-server.com/
+   ├── audio/
+   │   ├── English/
+   │   │   ├── song1.mp3
+   │   │   ├── song2.mp3
+   │   │   └── ...
+   │   ├── Spanish/
+   │   │   ├── song1.mp3
+   │   │   ├── song2.mp3
+   │   │   └── ...
+   │   └── [Other Languages]/
+   └── manifest.json
+   ```
 
-```bash
-# Audio Base URL - The base URL where your music files are hosted
-# This should point to your music server (without trailing slash)
-# Example: https://music.example.com
-NEXT_PUBLIC_AUDIO_BASE_URL=https://your-music-server.com
-```
-
-For Cloudflare Pages deployment, set this environment variable in your Cloudflare Pages dashboard.
-
-### Music Server Requirements
-
-Your music server should be a simple file server with the following structure:
-
-```
-https://your-music-server.com/
-├── manifest.json          # Contains the list of languages and songs
-└── audio/
-    ├── English/
-    │   ├── song1.mp3
-    │   ├── song2.mp3
-    │   └── song3.mp3
-    ├── Spanish/
-    │   ├── cancion1.mp3
-    │   └── cancion2.mp3
-    └── French/
-        ├── chanson1.mp3
-        └── chanson2.mp3
-```
-
-**manifest.json format:**
-```json
-{
-  "languages": {
-    "English": ["song1", "song2", "song3"],
-    "Spanish": ["cancion1", "cancion2"],
-    "French": ["chanson1", "chanson2"]
-  }
-}
-```
-
-See `manifest.example.json` in the repository for a complete example.
+2. **Manifest file** (`manifest.json`) at the root:
+   ```json
+   {
+     "languages": {
+       "English": ["song1", "song2", "song3"],
+       "Spanish": ["cancion1", "cancion2", "cancion3"],
+       "French": ["chanson1", "chanson2", "chanson3"]
+     }
+   }
+   ```
 
 **Important notes:**
 - Song titles in `manifest.json` should NOT include the `.mp3` extension
@@ -143,48 +128,10 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 - Make sure you have the rights to use any music you host
 - The app is designed to work with static hosting platforms like Cloudflare Pages
 
-## 🎵 Audio Format Support
+## Setup
 
-Audalithic supports multiple audio formats for maximum compatibility and quality:
+For detailed setup instructions and troubleshooting, see [SETUP.md](SETUP.md).
 
-### Supported Formats
-- **MP3** - Universal compatibility, widely supported
-- **OPUS** - Modern codec with superior compression and quality
+## Deployment
 
-### Browser Compatibility
-- **OPUS**: Chrome 33+, Firefox 15+, Edge 14+, Opera 20+
-- **Safari**: Limited OPUS support (requires special encoding)
-- **MP3**: Universal support across all browsers
-
-### Using OPUS Files
-
-For best results, we recommend providing both OPUS and MP3 versions of your audio files:
-
-```
-public/audio/English/
-├── song1.opus  (smaller size, better quality)
-├── song1.mp3   (fallback for compatibility)
-```
-
-The app automatically detects the best format for each browser and falls back gracefully.
-
-### Converting to OPUS
-
-To create OPUS files from your existing audio:
-
-```bash
-# Install FFmpeg first
-# macOS: brew install ffmpeg
-# Ubuntu: sudo apt install ffmpeg
-# Windows: Download from https://ffmpeg.org/
-
-# Convert MP3 to OPUS
-ffmpeg -i input.mp3 -c:a libopus -b:a 128k output.opus
-
-# Convert WAV to OPUS with high quality
-ffmpeg -i input.wav -c:a libopus -b:a 192k output.opus
-```
-
-See `OPUS_SUPPORT.md` for detailed information about OPUS implementation and browser compatibility.
-
-## ⚙️ Setup
+For deployment instructions, see [DEPLOYMENT.md](DEPLOYMENT.md).

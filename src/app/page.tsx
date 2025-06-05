@@ -1,6 +1,7 @@
 'use client';
 
 import { RadioProvider } from '@/contexts/RadioContext';
+import { EditProvider, useEdit } from '@/contexts/EditContext';
 import LanguageSelector from '@/components/LanguageSelector';
 import RadioPlayer from '@/components/RadioPlayer';
 import GradientBackground from '@/components/GradientBackground';
@@ -8,9 +9,10 @@ import Particles from '@/components/Particles';
 import TextEditor from '@/components/TextEditor';
 import { useEffect, useState } from 'react';
 
-export default function Home() {
+function HomeContent() {
   const [isLargeScreen, setIsLargeScreen] = useState(false);
   const [isLoaded, setIsLoaded] = useState(false);
+  const { isEditing } = useEdit();
 
   useEffect(() => {
     // Check if the screen is large enough on mount and on resize
@@ -35,7 +37,7 @@ export default function Home() {
   }, []);
 
   return (
-    <RadioProvider>
+    <>
       {isLargeScreen && (
         <>
           <GradientBackground />
@@ -68,7 +70,7 @@ export default function Home() {
                 </div>
               </div>
               
-              <div className="relative">
+              <div className={`relative transition-all duration-300 ${isEditing ? 'blur-sm pointer-events-none' : ''}`}>
                 <RadioPlayer />
               </div>
             </div>
@@ -77,7 +79,7 @@ export default function Home() {
         
         {isLargeScreen && (
           <div 
-            className={`w-full glass-morphism backdrop-blur-lg p-4 sm:p-6 border-t border-white/10 shadow-[0_-4px_12px_rgba(0,0,0,0.2)] transition-all duration-700 bottom-player-container ${isLoaded ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'}`}
+            className={`w-full glass-morphism backdrop-blur-lg p-4 sm:p-6 border-t border-white/10 shadow-[0_-4px_12px_rgba(0,0,0,0.2)] transition-all duration-700 bottom-player-container ${isLoaded ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'} ${isEditing ? 'blur-sm pointer-events-none' : ''}`}
           >
             <div className="max-w-6xl mx-auto">
               <div className="flex flex-col gap-6">
@@ -107,6 +109,16 @@ export default function Home() {
           </div>
         )}
       </main>
+    </>
+  );
+}
+
+export default function Home() {
+  return (
+    <RadioProvider>
+      <EditProvider>
+        <HomeContent />
+      </EditProvider>
     </RadioProvider>
   );
 }

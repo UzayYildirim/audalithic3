@@ -1,156 +1,57 @@
 {
   "languages": {
     "English": [
-      {
-        "title": "Almost Summer Now",
-        "format": "mp3"
-      },
-      {
-        "title": "Brand New Day",
-        "format": "mp3"
-      },
-      {
-        "title": "Breaking Free",
-        "format": "mp3"
-      },
-      {
-        "title": "Running for Stars",
-        "format": "mp3"
-      }
+      "Almost Summer Now",
+      "Brand New Day",
+      "Breaking Free",
+      "Running for Stars"
     ],
     "French": [
-      {
-        "title": "Juste le Ciel, Toi et Moi",
-        "format": "mp3"
-      },
-      {
-        "title": "Regarde le Ciel",
-        "format": "mp3"
-      },
-      {
-        "title": "Sous a la Pluie",
-        "format": "mp3"
-      },
-      {
-        "title": "Sous la Pluie",
-        "format": "mp3"
-      }
+      "Juste le Ciel, Toi et Moi",
+      "Regarde le Ciel",
+      "Sous a la Pluie",
+      "Sous la Pluie"
     ],
     "Hindi": [
-      {
-        "title": "आंधियाँ",
-        "format": "mp3"
-      },
-      {
-        "title": "उम्मीदें",
-        "format": "mp3"
-      },
-      {
-        "title": "मिलके चलें",
-        "format": "mp3"
-      }
+      "आंधियाँ",
+      "उम्मीदें",
+      "मिलके चलें"
     ],
     "Instrumental": [
-      {
-        "title": "07 - Instrumental",
-        "format": "mp3"
-      },
-      {
-        "title": "08 - Instrumental",
-        "format": "mp3"
-      },
-      {
-        "title": "09 - Instrumental",
-        "format": "mp3"
-      },
-      {
-        "title": "10 - Instrumental",
-        "format": "mp3"
-      },
-      {
-        "title": "11 - Instrumental",
-        "format": "mp3"
-      }
+      "07 - Instrumental",
+      "08 - Instrumental",
+      "09 - Instrumental",
+      "10 - Instrumental",
+      "11 - Instrumental"
     ],
     "Korean": [
-      {
-        "title": "투명한 꿈 위를 날아",
-        "format": "mp3"
-      }
+      "투명한 꿈 위를 날아"
     ],
     "Nepali": [
-      {
-        "title": "आशाले बाँचिन्छ ",
-        "format": "mp3"
-      },
-      {
-        "title": "खुल्ला आकाश ",
-        "format": "mp3"
-      },
-      {
-        "title": "भाग्य भाग्य",
-        "format": "mp3"
-      },
-      {
-        "title": "सुनौलो घाम",
-        "format": "mp3"
-      }
+      "आशाले बाँचिन्छ ",
+      "खुल्ला आकाश ",
+      "भाग्य भाग्य",
+      "सुनौलो घाम"
     ],
     "Spanish": [
-      {
-        "title": "Amanecer",
-        "format": "mp3"
-      },
-      {
-        "title": "Cuando Canta el Corazón",
-        "format": "mp3"
-      }
+      "Amanecer",
+      "Cuando Canta el Corazón"
     ],
     "Tagalog": [
-      {
-        "title": "Araw, Alon, at Musika",
-        "format": "mp3"
-      },
-      {
-        "title": "Best Friend",
-        "format": "mp3"
-      },
-      {
-        "title": "Hakbang sa Liwanag",
-        "format": "mp3"
-      },
-      {
-        "title": "Liwanag sa Dilim",
-        "format": "mp3"
-      }
+      "Araw, Alon, at Musika",
+      "Best Friend",
+      "Hakbang sa Liwanag",
+      "Liwanag sa Dilim"
     ],
     "Turkish": [
-      {
-        "title": "Düşler Içinde",
-        "format": "mp3"
-      }
+      "Düşler Içinde"
     ],
     "Ukrainian": [
-      {
-        "title": "Дружба",
-        "format": "mp3"
-      },
-      {
-        "title": "Літо Йде",
-        "format": "mp3"
-      },
-      {
-        "title": "Несу в Собі",
-        "format": "mp3"
-      },
-      {
-        "title": "Тримаєш Руку",
-        "format": "mp3"
-      },
-      {
-        "title": "душею ясною",
-        "format": "mp3"
-      }
+      "Дружба",
+      "Літо Йде",
+      "Несу в Собі",
+      "Тримаєш Руку",
+      "душею ясною"
     ]
   }
 }
